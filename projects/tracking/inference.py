@@ -357,16 +357,33 @@ class ParticleFilter(InferenceModule):
         be reinitialized by calling initializeUniformly. The total method of
         the DiscreteDistribution may be useful.
         """
-        "*** YOUR CODE HERE ***"
-        raiseNotDefined()
+        pmPos = gameState.getPacmanPosition()
+        legalPos = self.legalPositions
+        distr = DiscreteDistribution()
+        beliefDistr = self.getBeliefDistribution()
+        for pos in legalPos:
+            obsProb = self.getObservationProb(observation, pmPos, pos, self.getJailPosition())
+            distr[pos] = obsProb * beliefDistr[pos]
+        # Handle all 0 weights
+        if sum(distr.values()) == 0:
+            self.initializeUniformly(gameState)
+            return
+        newPart = []
+        for i in range(self.numParticles):
+            s = distr.sample()
+            newPart.append(s)
+        self.particles = newPart
 
     def elapseTime(self, gameState):
         """
         Sample each particle's next state based on its current state and the
         gameState.
         """
-        "*** YOUR CODE HERE ***"
-        raiseNotDefined()
+        newParticles = []
+        for oldPos in self.particles:
+            newPosDist = self.getPositionDistribution(gameState, oldPos)
+            newParticles.append(newPosDist.sample())
+        self.particles = newParticles
 
     def getBeliefDistribution(self):
         """
@@ -378,7 +395,7 @@ class ParticleFilter(InferenceModule):
         """
         beliefDistr = DiscreteDistribution()
         for particle in self.particles:
-            if particle in beliefDistr:
+            if particle not in beliefDistr:
                 beliefDistr[particle] = 1
             else:
                 beliefDistr[particle] += 1
