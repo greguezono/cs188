@@ -79,9 +79,9 @@ class RegressionModel(object):
             A node with shape (batch_size x 1) containing predicted y-values
         """
         "*** YOUR CODE HERE ***"
-        xw1 = nn.ReLU(nn.AddBias(nn.Linear(x, self.w1), self.b1))
-        xw2 = nn.AddBias(nn.Linear(xw1, self.w2), self.b2)
-        return xw2
+        z = nn.ReLU(nn.AddBias(nn.Linear(x, self.w1), self.b1))
+        output = nn.AddBias(nn.Linear(z, self.w2), self.b2)
+        return output
 
     def get_loss(self, x, y):
         """
@@ -132,6 +132,13 @@ class DigitClassificationModel(object):
     def __init__(self):
         # Initialize your model parameters here
         "*** YOUR CODE HERE ***"
+        self.w1 = nn.Parameter(784,350)
+        self.w2 = nn.Parameter(350,200)
+        self.w3 = nn.Parameter(200,10)
+        self.b1 = nn.Parameter(1,350)
+        self.b2 = nn.Parameter(1,200)
+        self.b3 = nn.Parameter(1,10)
+        self.multiplier = -.05
 
     def run(self, x):
         """
@@ -147,7 +154,10 @@ class DigitClassificationModel(object):
             A node with shape (batch_size x 10) containing predicted scores
                 (also called logits)
         """
-        "*** YOUR CODE HERE ***"
+        z1 = nn.ReLU(nn.AddBias(nn.Linear(x, self.w1), self.b1))
+        z2 = nn.ReLU(nn.AddBias(nn.Linear(z1, self.w2), self.b2))
+        output = nn.AddBias(nn.Linear(z2, self.w3), self.b3)
+        return output
 
     def get_loss(self, x, y):
         """
@@ -162,13 +172,27 @@ class DigitClassificationModel(object):
             y: a node with shape (batch_size x 10)
         Returns: a loss node
         """
-        "*** YOUR CODE HERE ***"
+        predicted_y = self.run(x)
+        return nn.SoftmaxLoss(predicted_y, y)
 
     def train(self, dataset):
         """
         Trains the model.
         """
-        "*** YOUR CODE HERE ***"
+        flag = True
+
+        while (dataset.get_validation_accuracy() < .97):
+            print(dataset.get_validation_accuracy())
+            validation_acccuracy = 0
+            for x, y in dataset.iterate_once(50):
+                loss = self.get_loss(x,y)
+                if nn.as_scalar(loss) > 0.02:
+                    grad_wrt_w1, grad_wrt_w2, grad_wrt_w3, grad_wrt_b1, grad_wrt_b2, grad_wrt_b3 \
+                     = nn.gradients(loss, [self.w1, self.w2, self.w3, self.b1, self.b2, self.b3])
+                    self.w1.update(grad_wrt_w1, self.multiplier)
+                    self.w2.update(grad_wrt_w2, self.multiplier)
+                    self.b1.update(grad_wrt_b1, self.multiplier)
+                    self.b2.update(grad_wrt_b2, self.multiplier)
 
 class LanguageIDModel(object):
     """
