@@ -44,7 +44,6 @@ class PerceptronModel(object):
         """
         Train the perceptron until convergence.
         """
-        print(dataset)
         flag = True
         while (flag):
             flag = False
@@ -64,6 +63,11 @@ class RegressionModel(object):
     def __init__(self):
         # Initialize your model parameters here
         "*** YOUR CODE HERE ***"
+        self.w1 = nn.Parameter(1,100)
+        self.w2 = nn.Parameter(100,1)
+        self.b1 = nn.Parameter(1,100)
+        self.b2 = nn.Parameter(1,1)
+        self.multiplier = -.01
 
     def run(self, x):
         """
@@ -75,6 +79,9 @@ class RegressionModel(object):
             A node with shape (batch_size x 1) containing predicted y-values
         """
         "*** YOUR CODE HERE ***"
+        xw1 = nn.ReLU(nn.AddBias(nn.Linear(x, self.w1), self.b1))
+        xw2 = nn.AddBias(nn.Linear(xw1, self.w2), self.b2)
+        return xw2
 
     def get_loss(self, x, y):
         """
@@ -87,12 +94,26 @@ class RegressionModel(object):
         Returns: a loss node
         """
         "*** YOUR CODE HERE ***"
+        predicted_y = self.run(x)
+        return nn.SquareLoss(predicted_y, y)
 
     def train(self, dataset):
         """
         Trains the model.
         """
-        "*** YOUR CODE HERE ***"
+        flag = True
+        while (flag):
+            flag = False
+            for x, y in dataset.iterate_once(2):
+                loss = self.get_loss(x,y)
+                if nn.as_scalar(loss) > 0.02:
+                    flag = True
+                    grad_wrt_w1, grad_wrt_w2, grad_wrt_b1, grad_wrt_b2 = nn.gradients(loss, [self.w1, self.w2, self.b1, self.b2])
+                    self.w1.update(grad_wrt_w1, self.multiplier)
+                    self.w2.update(grad_wrt_w2, self.multiplier)
+                    self.b1.update(grad_wrt_b1, self.multiplier)
+                    self.b2.update(grad_wrt_b2, self.multiplier)
+
 
 class DigitClassificationModel(object):
     """
