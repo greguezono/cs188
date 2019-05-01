@@ -80,8 +80,8 @@ class RegressionModel(object):
         """
         "*** YOUR CODE HERE ***"
         z = nn.ReLU(nn.AddBias(nn.Linear(x, self.w1), self.b1))
-        output = nn.AddBias(nn.Linear(z, self.w2), self.b2)
-        return output
+        predicted_y = nn.AddBias(nn.Linear(z, self.w2), self.b2)
+        return predicted_y
 
     def get_loss(self, x, y):
         """
@@ -156,8 +156,8 @@ class DigitClassificationModel(object):
         """
         z1 = nn.ReLU(nn.AddBias(nn.Linear(x, self.w1), self.b1))
         z2 = nn.ReLU(nn.AddBias(nn.Linear(z1, self.w2), self.b2))
-        output = nn.AddBias(nn.Linear(z2, self.w3), self.b3)
-        return output
+        predicted_y = nn.AddBias(nn.Linear(z2, self.w3), self.b3)
+        return predicted_y
 
     def get_loss(self, x, y):
         """
@@ -182,7 +182,6 @@ class DigitClassificationModel(object):
         flag = True
 
         while (dataset.get_validation_accuracy() < .97):
-            print(dataset.get_validation_accuracy())
             validation_acccuracy = 0
             for x, y in dataset.iterate_once(50):
                 loss = self.get_loss(x,y)
@@ -191,8 +190,10 @@ class DigitClassificationModel(object):
                      = nn.gradients(loss, [self.w1, self.w2, self.w3, self.b1, self.b2, self.b3])
                     self.w1.update(grad_wrt_w1, self.multiplier)
                     self.w2.update(grad_wrt_w2, self.multiplier)
+                    self.w3.update(grad_wrt_w3, self.multiplier)
                     self.b1.update(grad_wrt_b1, self.multiplier)
                     self.b2.update(grad_wrt_b2, self.multiplier)
+                    self.b3.update(grad_wrt_b3, self.multiplier)
 
 class LanguageIDModel(object):
     """
@@ -211,7 +212,15 @@ class LanguageIDModel(object):
         self.languages = ["English", "Spanish", "Finnish", "Dutch", "Polish"]
 
         # Initialize your model parameters here
-        "*** YOUR CODE HERE ***"
+        self.w1 = nn.Parameter(self.num_chars, 50)
+        self.wh = nn.Parameter(50, 50)
+        self.w2 = nn.Parameter(50,400)
+        self.w3 = nn.Parameter(400,len(self.languages))
+        self.b1 = nn.Parameter(1,50)
+        self.b2 = nn.Parameter(1,400)
+        self.b3 = nn.Parameter(1, len(self.languages))
+
+        self.multiplier = -.005
 
     def run(self, xs):
         """
@@ -243,6 +252,15 @@ class LanguageIDModel(object):
                 (also called logits)
         """
         "*** YOUR CODE HERE ***"
+        for i in range(len(xs)):
+            if i == 0:
+                z = nn.Linear(xs[i], self.w1)
+            else:
+                z = nn.Add(nn.Linear(xs[i], self.w1), nn.Linear(z, self.wh))
+        z = nn.ReLU(nn.AddBias(z, self.b1))
+        z = nn.ReLU(nn.AddBias(nn.Linear(z, self.w2), self.b2))
+        predicted_y = nn.AddBias(nn.Linear(z, self.w3), self.b3)
+        return predicted_y
 
     def get_loss(self, xs, y):
         """
@@ -258,10 +276,22 @@ class LanguageIDModel(object):
             y: a node with shape (batch_size x 5)
         Returns: a loss node
         """
-        "*** YOUR CODE HERE ***"
+        predicted_y = self.run(xs)
+        return nn.SoftmaxLoss(predicted_y, y)
 
     def train(self, dataset):
         """
         Trains the model.
         """
-        "*** YOUR CODE HERE ***"
+        while (dataset.get_validation_accuracy() < .82):
+            for x, y in dataset.iterate_once(3):
+                loss = self.get_loss(x,y)
+                grad_wrt_w1, grad_wrt_w2, grad_wrt_w3, grad_wrt_wh, grad_wrt_b1, grad_wrt_b2, grad_wrt_b3 \
+                 = nn.gradients(loss, [self.w1, self.w2, self.w3, self.wh, self.b1, self.b2, self.b3])
+                self.w1.update(grad_wrt_w1, self.multiplier)
+                self.w2.update(grad_wrt_w2, self.multiplier)
+                self.w3.update(grad_wrt_w3, self.multiplier)
+                self.wh.update(grad_wrt_wh, self.multiplier)
+                self.b1.update(grad_wrt_b1, self.multiplier)
+                self.b2.update(grad_wrt_b2, self.multiplier)
+                self.b3.update(grad_wrt_b3, self.multiplier)
